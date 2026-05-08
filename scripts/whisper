@@ -1,0 +1,61 @@
+#!/bin/bash
+set -e
+
+WHISPER_CLI="$HOME/Software/transcriber/build/bin/whisper-cli"
+MODEL_DIR="$HOME/Software/transcriber/models"
+MODEL="$MODEL_DIR/ggml-small.en.bin"
+
+usage() {
+    echo "Usage: whisper [--medium|--large|--turbo] <audio_file>"
+    exit 1
+}
+
+if [[ $# -eq 0 ]]; then usage; fi
+
+if [[ "$1" == "--medium" ]]; then
+    MODEL="$MODEL_DIR/ggml-medium.en.bin"
+    shift
+elif [[ "$1" == "--large" ]]; then
+    MODEL="$MODEL_DIR/ggml-large-v3.bin"
+    shift
+elif [[ "$1" == "--turbo" ]]; then
+    MODEL="$MODEL_DIR/ggml-large-v3-turbo.bin"
+    shift
+fi
+
+if [[ $# -ne 1 ]]; then usage; fi
+
+INPUT="$1"
+
+if [[ ! -f "$INPUT" ]]; then
+    echo "Error: file not found: $INPUT"
+    exit 1
+fi
+
+if [[ ! -f "$MODEL" ]]; then
+    echo "Error: model not found: $MODEL"
+    echo "Download it with: bash ~/Software/transcriber/models/download-ggml-model.sh medium.en"
+    exit 1
+fi
+
+DIR=$(dirname "$INPUT")
+STEM=$(basename "${INPUT%.*}")
+OUTPUT="$DIR/$STEM"
+TMP_WAV=$(mktemp /tmp/whisper_XXXXXX.wav)
+
+cleanup() { rm -f "$TMP_WAV"; }
+trap cleanup EXIT
+
+echo "Converting audio..."
+ffmpeg -i "$INPUT" -ar 16000 -ac 1 -c:a pcm_s16le "$TMP_WAV" -y -loglevel error
+
+"$WHISPER_CLI" \
+    -m "$MODEL" \
+    -f "$TMP_WAV" \
+    --language en \
+    -otxt \
+    -of "$OUTPUT" \
+    -pp
+
+echo ""
+echo "Transcript: ${OUTPUT}.txt"
