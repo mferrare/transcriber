@@ -6,6 +6,12 @@ Personal transcription tool built on [whisper.cpp](https://github.com/ggml-org/w
 
 ### Prerequisites
 
+**Ubuntu 24.04**
+```bash
+sudo apt install cmake build-essential libvulkan-dev glslc libshaderc-dev spirv-headers
+```
+
+**Fedora**
 ```bash
 sudo dnf install vulkan-loader-devel glslc libshaderc-devel spirv-headers-devel
 ```
